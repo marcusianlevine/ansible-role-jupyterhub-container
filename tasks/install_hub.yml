@@ -1,0 +1,21 @@
+---
+
+- name: install configurable http proxy via conda
+  shell: env -i PATH=$PATH bash -c '/opt/conda/bin/conda install configurable-http-proxy'
+  when: k8s_helm_build is defined and not k8s_helm_build|bool
+
+- name: install jupyterhub via pip
+  shell: env -i PATH=$PATH bash -c '/opt/conda/bin/pip install --no-cache-dir jupyterhub=={{ jupyterhub_pip_version }}'
+
+- name: Install kubespawner if building for Helm
+  shell: env -i PATH=$PATH bash -c '/opt/conda/bin/pip --no-cache-dir install git+https://github.com/jupyterhub/kubespawner@ae1c6d6f'
+  when: k8s_helm_build is defined and k8s_helm_build|bool
+
+- name: Create requisite directories
+  include: directories.yml
+
+- name: Copy over cull idle servers script
+  copy:
+    src: files/cull_idle_servers.py
+    dest: /usr/local/bin
+    mode: 0755

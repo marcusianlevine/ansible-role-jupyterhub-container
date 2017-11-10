@@ -1,0 +1,101 @@
+
+# We rely on environment variables to configure JupyterHub so that we
+# avoid having to rebuild the JupyterHub container every time we change a
+# configuration parameter.
+
+# Spawn single-user servers as Docker containers
+c.JupyterHub.spawner_class = 'dockerspawner.DockerSpawner'
+# Spawn containers from this image
+c.DockerSpawner.container_image = os.environ['DOCKER_NOTEBOOK_IMAGE']
+# JupyterHub requires a single-user instance of the Notebook server, so we
+# default to using the `start-singleuser.sh` script included in the
+# jupyter/docker-stacks *-notebook images as the Docker run command when
+# spawning containers.  Optionally, you can override the Docker run command
+# using the DOCKER_SPAWN_CMD environment variable.
+spawn_cmd = os.environ.get('DOCKER_SPAWN_CMD', "/usr/local/bin/start-singleuser.sh")
+c.DockerSpawner.extra_create_kwargs.update({ 'command': spawn_cmd })
+
+c.DockerSpawner.use_internal_ip = True
+# Connect containers to this Docker network
+network_name = os.environ['DOCKER_NETWORK_NAME']
+c.DockerSpawner.network_name = network_name
+# Pass the network name as argument to spawned containers
+c.DockerSpawner.extra_host_config = { 'network_mode': network_name }
+
+# Explicitly set notebook directory because we'll be mounting a host volume to
+# it.  Most jupyter/docker-stacks *-notebook images run the Notebook server as
+# user `jovyan`, and set the notebook directory to `/home/jovyan/work`.
+# We follow the same convention.
+notebook_dir = os.environ.get('DOCKER_NOTEBOOK_DIR') or '/home/jovyan/work'
+
+c.DockerSpawner.notebook_dir = notebook_dir
+# Mount the real user's Docker volume on the host to the notebook user's
+# notebook directory in the container
+notebook_volume = os.environ.get('DOCKER_NOTEBOOK_VOLUME', 'jupyterhub-user-{username}')
+c.DockerSpawner.volumes = { notebook_volume : notebook_dir }
+c.DockerSpawner.extra_create_kwargs.update({ 'volume_driver': 'local' })
+# Remove containers once they are stopped
+c.DockerSpawner.remove_containers = True
+# For debugging arguments passed to spawned containers
+c.DockerSpawner.debug = True
+
+{% if allow_sudo %}
+c.DockerSpawner.extra_create_kwargs.update({'user': 'root'})
+c.DockerSpawner.environment.update({"GRANT_SUDO": "yes"})
+{% endif %}
+
+{% if keep_path %}
+hub_path = os.environ['PATH']
+c.DockerSpawner.environment.update({"PATH" : hub_path})
+{% endif %}
+
+# User containers will access hub by container name on the Docker network
+c.JupyterHub.hub_ip = os.environ.get('HUB_HOSTNAME', 'jupyterhub')
+
+{% if mem_limit %}
+# See DockerSpawner documentation for details: https://github.com/jupyterhub/dockerspawner#memory-limits
+c.Spawner.mem_limit = '{{ mem_limit }}'
+{% endif %}
+
+c.JupyterHub.hub_port = 8080
+
+# TLS config
+c.JupyterHub.port = 8000 #443
+#c.JupyterHub.ssl_key = os.environ['SSL_KEY']
+#c.JupyterHub.ssl_cert = os.environ['SSL_CERT']
+
+# Persist hub data on volume mounted inside container
+data_dir = os.environ.get('DATA_VOLUME_CONTAINER', '/data')
+c.JupyterHub.db_url = os.path.join('sqlite:///', data_dir, 'jupyterhub.sqlite')
+c.JupyterHub.cookie_secret_file = os.path.join(data_dir,
+    'jupyterhub_cookie_secret')
+
+# Whitlelist users and admins
+{% if admin_users|length %}
+c.Authenticator.admin_users = {
+{%- for user in admin_users[:-1] -%}
+'{{user}}',
+{%- endfor -%}
+'{{-admin_users[-1]-}}'}
+{% else %}
+c.Authenticator.admin_users = set()
+{% endif %}
+
+{% if user_list|length %}
+c.Authenticator.whitelist = {
+{%- for user in jupyterhub_users[:-1] -%}
+'{{user}}',
+{%- endfor -%}
+'{{-jupyterhub_users[-1]-}}'}
+{% else %}
+c.Authenticator.whitelist = set()
+{% endif %}
+
+# Authentication settings
+{% if use_oauth %}
+# Authenticate users with GitHub OAuth
+c.JupyterHub.authenticator_class = 'oauthenticator.GitHubOAuthenticator'
+c.GitHubOAuthenticator.oauth_callback_url = os.environ['OAUTH_CALLBACK_URL']
+{% elif use_ldap %}
+{% include 'ldap_auth_config.py.j2' %}
+{% endif %}

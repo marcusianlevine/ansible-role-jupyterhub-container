@@ -1,0 +1,6 @@
+#!/bin/bash
+
+{% if k8s_helm_build is defined and not k8s_helm_build %}
+(docker pull $DOCKER_NOTEBOOK_IMAGE) &
+{% endif %}
+jupyterhub -f {{ jupyterhub_config_path }}

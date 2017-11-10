@@ -1,0 +1,35 @@
+---
+
+- include_vars: "/src/{{ item }}"
+  with_items: "{{ vars_files }}"
+  when: vars_files is defined and vars_files
+
+- name: Install dumb init
+  get_url:
+    dest: /usr/bin/dumb-init
+    url: https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64
+    mode: 0775
+    validate_certs: no
+
+- include: install_conda.yml
+
+- include: install_hub.yml
+
+- name: Install additional pip packages for JupyterHub
+  command: env -i PATH=$PATH bash -c '/opt/conda/bin/pip install {{ extra_pip_packages|join(' ') }}'
+  tags: packages
+
+- name: Install ldapauthenticator if use_ldap
+  shell: env -i PATH=$PATH bash -c '/opt/conda/bin/pip --no-cache-dir install git+https://github.com/jupyterhub/ldapauthenticator@a8bc231'
+  when: use_ldap is defined and use_ldap|bool
+
+- name: Inject jupyterhub_config.py
+  template:
+    src: jupyterhub_config.py.j2
+    dest: "{{ jupyterhub_config_path }}"
+
+- name: Inject custom start script with proper permissions
+  template:
+    src: start_hub.sh.j2
+    dest: /usr/local/bin/start_hub
+    mode: 0755

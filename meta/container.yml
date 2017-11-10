@@ -1,0 +1,15 @@
+  web:
+    from: "buildpack-deps:stretch"
+    roles:
+      - role: mongrelion.docker
+      - role: jupyterhub-container
+    environment:
+      - PATH=/opt/conda/bin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+      - DEBIAN_FRONTEND="noninteractive"
+      - DOCKER_NOTEBOOK_IMAGE="jupyter/datascience-notebook:b4dd11e16ae4"
+      - HUB_HOSTNAME=web
+    ports:
+      - 8000:8000
+    command: [/usr/bin/dumb-init, /usr/local/bin/start_hub]
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"

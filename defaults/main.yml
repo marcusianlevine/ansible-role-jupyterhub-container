@@ -1,0 +1,30 @@
+---
+
+jupyterhub_config_dir: /etc/jupyterhub/
+jupyterhub_config_path: "{{ jupyterhub_config_dir }}/jupyterhub_config.py"
+jupyterhub_srv_dir: "/srv/jupyterhub"
+jupyterhub_pip_version: 0.8.1
+
+# Jupyter config directories
+jupyter_config_dir: /etc/jupyter
+jupyter_share_dir: /usr/local/share/jupyter
+jupyter_templates_dir: "{{jupyter_config_dir}}/templates"
+
+# IPython config directory
+ipython_config_dir: /etc/ipython
+
+allow_sudo: no
+mem_limit: no # unlimited by default
+
+# ONLY ENABLE ONE OF THESE TWO AUTH OPTIONS!
+use_oauth: no
+use_ldap: no
+
+keep_path: no
+
+user_list: []
+admin_users: []
+
+
+extra_pip_packages:
+  - dockerspawner
