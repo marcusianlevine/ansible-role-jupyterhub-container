@@ -61,6 +61,8 @@ c.KubeSpawner.singleuser_image_spec = os.environ['SINGLEUSER_IMAGE']
 
 c.KubeSpawner.singleuser_extra_labels = get_config('singleuser.extra-labels', {})
 
+c.KubeSpawner.singleuser_image_pull_policy = os.envrion.get('SINGLEUSER_PULL_POLICY', 'IfNotPresent')
+
 c.KubeSpawner.singleuser_uid = get_config('singleuser.uid')
 c.KubeSpawner.singleuser_fs_gid = get_config('singleuser.fs-gid')
 
