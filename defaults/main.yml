@@ -30,3 +30,5 @@ extra_pip_packages:
   - dockerspawner
 
 kube_start_timeout: 600
+kube_pip_commit: 21420ac
+kube_pip_package: "git+https://github.com/jupyterhub/kubespawner@{{ kube_pip_commit }}"
