@@ -28,3 +28,5 @@ admin_users: []
 
 extra_pip_packages:
   - dockerspawner
+
+kube_spawn_timeout: 600
